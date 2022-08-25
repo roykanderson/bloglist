@@ -1,4 +1,3 @@
-const blog = require('../models/blog')
 const Blog = require('../models/blog')
 
 const initialBlogs = [
