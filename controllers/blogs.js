@@ -39,6 +39,9 @@ blogsRouter.post('/', userExtractor, async (req, res) => {
 blogsRouter.delete('/:id',  userExtractor, async (req, res) => {
   // Fetch blog from database
   const blog = await Blog.findById(req.params.id)
+  if (!blog) {
+    return res.status(400).json({ error: 'blog missing or deleted' })
+  }
 
   // Authenticate user
   if (req.user.id !== blog.user.toString()) {

@@ -46,6 +46,13 @@ describe('when there are some notes saved intially', () => {
 
 describe('adding a blog', () => {
   test('a valid blog can be added', async () => {
+    const loginRes = await api
+      .post('/api/login')
+      .send({ username: 'root', password: 'secret' })
+      .expect(200)
+
+    const token = loginRes.body.token
+
     const newBlog = {
       title: 'Test',
       author: 'John Doe',
@@ -53,10 +60,11 @@ describe('adding a blog', () => {
       likes: 0
     }
 
-    const res = await api.post('/api/blogs').send(newBlog)
-
-    // Correct HTTP status code returned
-    expect(res.status).toBe(201)
+    const res = await api
+      .post('/api/blogs')
+      .set('Authorization', `bearer ${token}`)
+      .send(newBlog)
+      .expect(201)
 
     // Correct content-type returned
     expect(res.headers['content-type']).toMatch(/application\/json/)
@@ -74,13 +82,23 @@ describe('adding a blog', () => {
 
   // Exercise 4.11
   test('likes are 0 if likes property is not included in request', async () => {
+    const loginRes = await api
+      .post('/api/login')
+      .send({ username: 'root', password: 'secret' })
+      .expect(200)
+
+    const token = loginRes.body.token
+
     const newBlog = {
       title: 'Test',
       author: 'Ed Eddy',
       url: 'https://test.com'
     }
 
-    await api.post('/api/blogs').send(newBlog)
+    await api
+      .post('/api/blogs')
+      .set('Authorization', `bearer ${token}`)
+      .send(newBlog)
 
     const blogsAtEnd = await helper.blogsInDb()
 
@@ -90,6 +108,13 @@ describe('adding a blog', () => {
 
   // Exercise 4.12
   test('blogs with missing title or url are not added', async () => {
+    const loginRes = await api
+      .post('/api/login')
+      .send({ username: 'root', password: 'secret' })
+      .expect(200)
+
+    const token = loginRes.body.token
+
     const noTitleBlog = {
       author: 'John Doe',
       url: 'https://test.com',
@@ -102,8 +127,15 @@ describe('adding a blog', () => {
       likes: 3
     }
 
-    const res1 = await api.post('/api/blogs').send(noTitleBlog)
-    const res2 = await api.post('/api/blogs').send(noUrlBlog)
+    const res1 = await api
+      .post('/api/blogs')
+      .set('Authorization', `bearer ${token}`)
+      .send(noTitleBlog)
+
+    const res2 = await api
+      .post('/api/blogs')
+      .set('Authorization', `bearer ${token}`)
+      .send(noUrlBlog)
 
     const blogsAtEnd = await helper.blogsInDb()
 
@@ -117,20 +149,39 @@ describe('adding a blog', () => {
 })
 
 describe('deleting a blog', () => {
-  test('succeeds with status code 204 if id is valid', async() => {
-    const blogsAtStart = await helper.blogsInDb()
-    const blogToDelete = blogsAtStart[0]
+  test('succeeds with status code 204 if id is valid', async () => {
+    const loginRes = await api
+      .post('/api/login')
+      .send({ username: 'root', password: 'secret' })
+      .expect(200)
 
-    const res = await api.delete(`/api/blogs/${blogToDelete.id}`)
+    const token = loginRes.body.token
 
-    expect(res.status).toBe(204)
+    const newBlog = {
+      title: 'Test',
+      author: 'John Doe',
+      url: 'https://test.com',
+      likes: 0
+    }
+
+    const addedBlog = await api
+      .post('/api/blogs')
+      .set('Authorization', `bearer ${token}`)
+      .send(newBlog)
+
+    expect(await helper.blogsInDb()).toHaveLength(helper.initialBlogs.length + 1)
+
+    await api
+      .delete(`/api/blogs/${addedBlog.body.id}`)
+      .set('Authorization', `bearer ${token}`)
+      .expect(204)
 
     const blogsAtEnd = await helper.blogsInDb()
 
-    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length - 1)
+    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
 
     const urls = blogsAtEnd.map(blog => blog.url)
-    expect(urls).not.toContain(blogToDelete.url)
+    expect(urls).not.toContain(addedBlog.body.url)
   })
 })
 
