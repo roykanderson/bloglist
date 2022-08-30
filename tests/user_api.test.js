@@ -77,7 +77,7 @@ describe('creating a user', () => {
       .send(newUser)
       .expect(400)
 
-    expect(res.body.error).toBe('E11000 duplicate key error collection: test.users index: username_1 dup key: { username: "root" }')
+    expect(res.body.error).toBe('username must be unique')
 
     const usersAtEnd = await helper.usersInDb()
 
