@@ -5,11 +5,23 @@ const reqLogger = (req, res, next) => {
   logger.info('Path:  ', req.path)
   logger.info('Body:  ', req.body)
   logger.info('---')
+
   next()
 }
 
-const unknownEndpoint = (req, res) => {
+const tokenExtractor = (req, res, next) => {
+  const authorization = req.get('authorization')
+  if (authorization && authorization.toLowerCase().startsWith('bearer')) {
+    req.token = authorization.substring(7)
+  }
+
+  next()
+}
+
+const unknownEndpoint = (req, res, next) => {
   res.status(404).send({ error: 'unknown endpoint' })
+
+  next()
 }
 
 const errorHandler = (error, req, res, next) => {
@@ -36,6 +48,7 @@ const errorHandler = (error, req, res, next) => {
 
 module.exports = {
   reqLogger,
+  tokenExtractor,
   unknownEndpoint,
   errorHandler
 }
