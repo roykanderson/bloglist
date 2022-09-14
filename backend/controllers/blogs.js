@@ -52,13 +52,26 @@ blogsRouter.delete('/:id',  userExtractor, async (req, res) => {
   res.status(204).end()
 })
 
-blogsRouter.put('/:id', async (req, res) => {
+blogsRouter.put('/:id', userExtractor, async (req, res) => {
   const { likes } = req.body
 
-  let blog = await Blog.findById(req.params.id)
-  blog.likes = likes
+  // Validate token
+  if (!req.user.id) {
+    return res.status(401).json({ error: 'token missing or invalid' })
+  }
 
-  const updatedBlog = await Blog.findByIdAndUpdate(req.params.id, blog, { new: true, runValidators: true, context: 'query' })
+  let blogToUpdate = await Blog.findById(req.params.id)
+
+  // Ensure user has not already liked blog
+  const user = await User.findById(req.user.id)
+  if (blogToUpdate.usersWhoLiked.includes(user._id)) {
+    return res.status(400).json({ error: 'cannot like a blog more than once' })
+  }
+
+  blogToUpdate.likes = likes
+  blogToUpdate.usersWhoLiked = blogToUpdate.usersWhoLiked.concat(user._id)
+
+  const updatedBlog = await Blog.findByIdAndUpdate(req.params.id, blogToUpdate, { new: true, runValidators: true, context: 'query' })
   res.json(updatedBlog)
 })
 
